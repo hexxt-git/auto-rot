@@ -1,135 +1,162 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { ElevenLabsClient, play } from 'elevenlabs';
+import textToSpeech from '@google-cloud/text-to-speech';
 import { AssemblyAI } from 'assemblyai';
 
-import { configDotenv } from 'dotenv';
-import fs from 'fs';
-import fsPromise from 'fs/promises';
+import fs from 'fs/promises';
 import ffmpeg from 'fluent-ffmpeg';
 
-const project_id =
-	Math.random().toString(36).substring(2, 15) +
-	Math.random().toString(36).substring(2, 15);
+import { config } from 'dotenv';
+config();
 
-await fsPromise.mkdir(`./output_${project_id}`)
+async function generateVideo() {
+	const project_id =
+		Math.random().toString(36).substring(2, 15) +
+		Math.random().toString(36).substring(2, 15);
 
-configDotenv();
+	await fs.mkdir(`./outputs/output_${project_id}`);
 
-const elevenlabs_key = process.env.elevenlabs;
-const gemini_key = process.env.gemini;
-const assemblyAI_key = process.env.assemblyAI;
+	const gemini_key = process.env.gemini;
+	const assemblyAI_key = process.env.assemblyAI;
 
-console.log({ project_id, elevenlabs_key, gemini_key, assemblyAI_key });
-const genAI = new GoogleGenerativeAI(gemini_key);
-const gemini_client = genAI.getGenerativeModel({
-	model: 'gemini-1.5-pro-latest',
-});
-const elevenlabs_client = new ElevenLabsClient({
-	apiKey: elevenlabs_key,
-});
+	console.log({ project_id, gemini_key, assemblyAI_key });
+	const genAI = new GoogleGenerativeAI(gemini_key);
+	const gemini_client = genAI.getGenerativeModel({
+		model: 'gemini-1.5-pro-latest',
+	});
 
-const geminiResult = await gemini_client.generateContent(
-	'write a very short realistic revenge story that could actually happen in the first person. do not pass a couple sentences in length'
-);
-const text = geminiResult.response.text();
+	const geminiResult = await gemini_client.generateContent(
+		'write a very short realistic story that could actually happen in the first person. in two or three sentences'
+	);
+	const text = geminiResult.response.text();
 
-console.log('Text generated successfully');
+	console.log('Text generated successfully');
 
-await fsPromise.writeFile(`./output_${project_id}/text.txt`, text);
-console.log('Text saves successfully');
+	await fs.writeFile(`./outputs/output_${project_id}/text.txt`, text);
+	console.log('Text saves successfully');
 
-const audio = await elevenlabs_client.generate({
-	voice: 'Daniel',
-	text: text,
-	model_id: 'eleven_multilingual_v2',
-});
-console.log('Audio generated successfully');
+	const google_tts_client = new textToSpeech.TextToSpeechClient();
+	const [tts_response] = await google_tts_client.synthesizeSpeech({
+		input: { text },
+		voice: { languageCode: 'en-US', ssmlGender: 'MALE' },
+		audioConfig: { audioEncoding: 'MP3' },
+	});
+	const audio = tts_response.audioContent;
+	console.log('Audio generated successfully');
 
-const fileStream = fs.createWriteStream(`./output_${project_id}/audio.mp3`);
-await new Promise((resolve) => audio.pipe(fileStream).on('finish', resolve));
-console.log('Audio saved successfully');
+	await fs.writeFile(
+		`./outputs/output_${project_id}/audio.mp3`,
+		audio,
+		'binary'
+	);
+	console.log('Audio saved successfully');
 
-const assemblyAI_client = new AssemblyAI({ apiKey: assemblyAI_key });
-const transcript = await assemblyAI_client.transcripts.transcribe({
-	audio: `./output_${project_id}/audio.mp3`,
-});
-console.log('Transcript generated successfully');
+	const assemblyAI_client = new AssemblyAI({ apiKey: assemblyAI_key });
+	const transcript = await assemblyAI_client.transcripts.transcribe({
+		audio: `./outputs/output_${project_id}/audio.mp3`,
+	});
+	console.log('Transcript generated successfully');
 
-await fsPromise.writeFile(
-	`./output_${project_id}/transcript.json`,
-	JSON.stringify(transcript.words)
-);
-console.log('Transcript saved successfully');
+	await fs.writeFile(
+		`./outputs/output_${project_id}/transcript.json`,
+		JSON.stringify(transcript.words)
+	);
+	console.log('Transcript saved successfully');
 
-function msToTime(duration) {
-	let milliseconds = parseInt((duration % 1000) / 10),
-		seconds = Math.floor((duration / 1000) % 60),
-		minutes = Math.floor((duration / (1000 * 60)) % 60),
-		hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+	function msToTime(duration) {
+		duration = duration / 1;
+		let milliseconds = parseInt((duration % 1000) / 10),
+			seconds = Math.floor((duration / 1000) % 60),
+			minutes = Math.floor((duration / (1000 * 60)) % 60),
+			hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
 
-	hours = hours < 10 ? '0' + hours : hours;
-	minutes = minutes < 10 ? '0' + minutes : minutes;
-	seconds = seconds < 10 ? '0' + seconds : seconds;
-	milliseconds = milliseconds < 10 ? '0' + milliseconds : milliseconds;
+		hours = hours < 10 ? '0' + hours : hours;
+		minutes = minutes < 10 ? '0' + minutes : minutes;
+		seconds = seconds < 10 ? '0' + seconds : seconds;
+		milliseconds = milliseconds < 10 ? '0' + milliseconds : milliseconds;
 
-	return `${hours}:${minutes}:${seconds}.${milliseconds}`;
+		return `${hours}:${minutes}:${seconds}.${milliseconds}`;
+	}
+
+	const header = `
+    [Script Info]
+    Title: Subtitles
+    ScriptType: v4.00+
+
+    [V4+ Styles]
+    Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+    Style: Default,Comic Neue,32,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,3,0,2,10,10,30,1
+
+    [Events]
+    Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+`;
+	const events = transcript.words
+		.map((sub) => {
+			const startTime = msToTime(sub.start);
+			const endTime = msToTime(sub.end);
+			const text = sub.text.replace(/(\r\n|\n|\r)/gm, ' ');
+			const fadeEffect = `{\fad(300,300)}`; // Fade in/out animation
+
+			return `Dialogue: 0,${startTime},${endTime}Y,Default,,0,0,0,,${fadeEffect}${text}`;
+		})
+		.join('\n');
+
+	const subtitles = header + events;
+	console.log('subtitles generated successfully');
+
+	await fs.writeFile(
+		`./outputs/output_${project_id}/subtitles.ass`,
+		subtitles,
+		'utf-8'
+	);
+	console.log('subtitles saved successfully');
+
+	const videoLength =
+		transcript.words[transcript.words.length - 1].end + 5000;
+	const videoStart = Math.floor(
+		Math.random() * (13 * 60 * 1000 - videoLength)
+	);
+
+	const inputVideo = './backgrounds/minecraft.mp4';
+	const subtitle_file = `./outputs/output_${project_id}/subtitles.ass`;
+	const outputVideo = `./outputs/output_${project_id}/video_${project_id}.mp4`;
+	const audioFile = `./outputs/output_${project_id}/audio.mp3`;
+
+	// Step 1: Edit the video
+	await ffmpeg()
+		.input(inputVideo)
+		.setStartTime(msToTime(videoStart))
+		.setDuration(videoLength / 1000)
+		.videoFilter([`ass=${subtitle_file}`, 'crop=ih*9/16:ih'])
+		.on('end', () => {
+			console.log('video edited successfully');
+
+			// Step 2: Add the audio to the edited video
+			ffmpeg()
+				.input('tmp.mp4') // Use the output from step 1
+				.input(audioFile)
+				.audioCodec('copy')
+				.outputOptions(['-map 0:v:0', '-map 1:a:0', '-shortest'])
+				.on('end', () => {
+					console.log('video assembled successfully');
+				})
+				.on('error', (err) => {
+					console.error('Error:', err);
+				})
+				.save(outputVideo);
+		})
+		.on('error', (err) => {
+			console.error('Error:', err);
+		})
+		.save('tmp.mp4'); // Temporary file for edited video
+
+	return project_id;
 }
 
-const header = `
-	[Script Info]
-	Title: Subtitles
-	ScriptType: v4.00+
-
-	[V4+ Styles]
-	Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-	Style: Default,Arial,36,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,1,0,2,10,10,10,1
-
-	[Events]
-	Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-`;
-
-const events = transcript.words
-	.map((sub) => {
-		const startTime = msToTime(sub.start);
-		const endTime = msToTime(sub.end);
-		const text = sub.text.replace(/(\r\n|\n|\r)/gm, ' ');
-		const fadeEffect = `{\fad(300,300)}`; // Fade in/out animation
-
-		return `Dialogue: 0,${startTime},${endTime},Default,,0,0,0,,${fadeEffect}${text}`;
-	})
-	.join('\n');
-
-const subtitles = header + events;
-console.log('subtitles generated successfully');
-
-await fsPromise.writeFile(`./output_${project_id}/subtitles.ass`, subtitles, 'utf-8');
-console.log('subtitles saved successfully');
-
-const videoLength = transcript.words[transcript.words.length - 1].end + 5000;
-
-const inputVideo = './backgrounds/minecraft.mp4';
-const subtitle_file = `./output_${project_id}/subtitles.ass`;
-const outputVideo = `./output_${project_id}/video.mp4`;
-const audioFile = `./output_${project_id}/audio.mp3`; // Define the path to your audio file
-
-ffmpeg()
-	.input(inputVideo)
-	.input(audioFile) // Add the audio file as an input
-	.inputOptions(`-to ${msToTime(videoLength)}`)
-	.videoFilter([
-		`ass=${subtitle_file}`,
-		'crop=ih*9/16:ih', // Crop the video to a 9:16 aspect ratio based on the height
-	])
-	.audioCodec('copy') // Use the same audio codec for the output
-	.outputOptions([
-		'-map 0:v:0', // Map the video stream from the first input (video file)
-		'-map 1:a:0', // Map the audio stream from the second input (audio file)
-		'-shortest', // Finish encoding when the shortest input stream ends
-	])
-	.on('end', () => {
-		console.log('video assembled successfully');
-	})
-	.on('error', (err) => {
-		console.error('Error:', err);
-	})
-	.save(outputVideo);
+while(true){
+	try{
+		await generateVideo();
+	} catch (err) {
+		console.error(err);
+		await new Promise((resolve) => setTimeout(resolve, 10000));
+	}
+}

@@ -1,6 +1,7 @@
 # user generated content
 /output*
 /backgrounds
+/videos
 
 # Based on https://raw.githubusercontent.com/github/gitignore/main/Node.gitignore
 

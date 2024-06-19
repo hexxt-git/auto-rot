@@ -9,6 +9,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@google-cloud/text-to-speech": "^5.3.0",
     "@google/generative-ai": "^0.13.0",
     "assemblyai": "^4.5.0",
     "dotenv": "^16.4.5",
