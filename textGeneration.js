@@ -16,7 +16,7 @@ export async function generateScript(prompt) {
 		<speak>
 			${text}...
 			<break time="1500ms" />
-			these real life stories are a combination of fan suggestion and my own creation. comment down bellow what stories you have and follow for more posts like these.
+			these real life stories are a combination of fan suggestion and my own creation. comment down below what stories you have and follow for more posts like these. <break time="2s" />
 		</speak>
 	`;
 }

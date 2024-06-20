@@ -1,6 +1,7 @@
 import { AssemblyAI } from 'assemblyai';
 
 export async function transcribeAudio(audioPath) {
+	await new Promise(res => setTimeout(res, 3000))
 	const client = new AssemblyAI({ apiKey: process.env.assemblyAI });
 	const transcript = await client.transcripts.transcribe({
 		audio: audioPath,
