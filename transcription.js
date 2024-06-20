@@ -11,7 +11,7 @@ export async function transcribeAudio(audioPath) {
 import { msToTime } from './utilities.js';
 
 export function generateSubtitles(transcript) {
-    const header = `
+	const header = `
     [Script Info]
     Title: Subtitles
     ScriptType: v4.00+
@@ -23,19 +23,16 @@ export function generateSubtitles(transcript) {
     [Events]
     Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 `;
-    const events = transcript
-        .map((sub) => {
-            const startTime = msToTime(sub.start);
-            const endTime = msToTime(sub.end);
-            const text = sub.text.replace(/(\r\n|\n|\r)/gm, ' ');
-            const fadeEffect = `{\fad(300,300)}`; // Fade in/out animation
-            // Adding scaling animation from font size 32 to 48 over the first 500ms
-            const scalingEffect = `{\t(0,500,\\fs48)}`;
+	const events = transcript
+		.map((sub) => {
+			const startTime = msToTime(sub.start);
+			const endTime = msToTime(sub.end);
+			const text = sub.text.replace(/(\r\n|\n|\r)/gm, ' ');
+			const fadeEffect = `{\fad(300,300)}`;
+			return `Dialogue: 0,${startTime},${endTime},Default,,0,0,0,,${fadeEffect}${text}`;
+		})
+		.join('\n');
 
-            return `Dialogue: 0,${startTime},${endTime},Default,,0,0,0,,${fadeEffect}${scalingEffect}${text}`;
-        })
-        .join('\n');
-
-    const subtitles = header + events;
-    return subtitles;
+	const subtitles = header + events;
+	return subtitles;
 }

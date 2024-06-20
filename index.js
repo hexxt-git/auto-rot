@@ -1,4 +1,4 @@
-import { generateText } from './textGeneration.js';
+import { generateScript } from './textGeneration.js';
 import { synthesizeSpeech } from './speechSynthesis.js';
 import { transcribeAudio, generateSubtitles } from './transcription.js';
 import { editVideo } from './videoEditing.js';
@@ -7,8 +7,8 @@ import { config } from 'dotenv';
 config();
 
 async function main() {
-	const script = await generateText(
-		'write a short realistic and catchy story that could actually happen in the first person. in three or four sentences'
+	const script = await generateScript(
+		`write a realistic and catchy story that could actually happen. write it in the first person perspective and in three or four lines. use everyday language, nothing too fancy`
 	);
 	await fs.writeFile('./output/tmp.txt', script);
 	const audio = await synthesizeSpeech(script);
