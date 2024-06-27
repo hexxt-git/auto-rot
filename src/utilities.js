@@ -1,4 +1,5 @@
 import ffmpeg from 'fluent-ffmpeg';
+import fs from 'fs';
 
 export function msToTime(duration) {
 	duration = duration / 1;
@@ -15,11 +16,16 @@ export function msToTime(duration) {
 	return `${hours}:${minutes}:${seconds}.${milliseconds}`;
 }
 
-export function getAudioDuration(filePath) {
+export function getClipDuration(filePath) {
 	return new Promise((resolve, reject) => {
-        ffmpeg.ffprobe(filePath, (err, metadata) => {
-            if (err) reject(err);
-            else resolve(metadata.format.duration);
-        });
-    });
+		ffmpeg.ffprobe(filePath, (err, metadata) => {
+			if (err) reject(err);
+			else resolve(metadata.format.duration);
+		});
+	});
+}
+
+export function randomBackground() {
+	const files = fs.readdirSync('./backgrounds');
+	return `./backgrounds/${files[Math.floor(Math.random() * files.length)]}`;
 }
