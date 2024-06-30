@@ -1,7 +1,8 @@
 import { AssemblyAI } from 'assemblyai';
+import fs from 'fs';
 
 export async function transcribeAudio(audioPath) {
-	await new Promise(res => setTimeout(res, 3000))
+	await new Promise((res) => setTimeout(res, 3000));
 	const client = new AssemblyAI({ apiKey: process.env.assemblyAI });
 	const transcript = await client.transcripts.transcribe({
 		audio: audioPath,
@@ -11,7 +12,10 @@ export async function transcribeAudio(audioPath) {
 
 import { msToTime } from './utilities.js';
 
-export function generateSubtitles(transcript) {
+export function generateSubtitles(pathToTranscript) {
+	const string_buffer = fs.readFileSync(pathToTranscript, 'utf-8');
+	const transcript = JSON.parse(string_buffer);
+
 	const header = `
     [Script Info]
     Title: Subtitles

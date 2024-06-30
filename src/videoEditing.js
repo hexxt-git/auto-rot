@@ -7,6 +7,7 @@ export async function editVideo(
 	backgroundFilePath,
 	subtitleFilePath,
 	audioFilePath,
+	tmpFilePath,
 	outputFilePath
 ) {
 	const videoDuration = (await getClipDuration(audioFilePath)) * 1000;
@@ -24,18 +25,18 @@ export async function editVideo(
 			.videoCodec('libx264')
 			.audioCodec('aac')
 			.audioBitrate('192k')
-			.videoBitrate('3000k')
+			.videoBitrate('2500k')
 			.addOptions(['-crf 20'])
 			.on('end', () => {
 				// Step 2: Add the audio to the edited video
 				ffmpeg()
-					.input(path.join(process.cwd(), '/tmp/tmp.mp4')) // Use the output from step 1
+					.input(tmpFilePath) // Use the output from step 1
 					.input(audioFilePath)
 					.audioCodec('copy') // No need to re-encode audio here
+					.videoCodec('libx264')
+					.videoBitrate('2500k')
 					.outputOptions(['-map 0:v:0', '-map 1:a:0', '-shortest'])
-					.on('end', () => {
-						res();
-					})
+					.on('end', res)
 					.on('error', (err) => {
 						6;
 						console.error('Error:', err);
@@ -45,6 +46,6 @@ export async function editVideo(
 			.on('error', (err) => {
 				console.error('Error:', err);
 			})
-			.save(path.join(process.cwd(), '/tmp/tmp.mp4'));
+			.save(tmpFilePath);
 	});
 }
